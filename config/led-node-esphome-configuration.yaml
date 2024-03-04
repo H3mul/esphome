@@ -1,0 +1,38 @@
+substitutions:
+  ip_address: !secret led_node_2_ip
+
+esphome:
+  name: led-node-2
+  platform: ESP8266
+  board: nodemcuv2
+
+<<: !include base-esphome-configuration.yaml
+
+wled:
+
+# e131:
+#   method: multicast # default: register E1.31 to Multicast group
+
+light:
+  - platform: neopixelbus
+    variant: WS2811
+    type: BRG
+    pin: D1
+    num_leds: 24
+    name: "LED Node 1"
+    id: led_node_2
+    effects:
+      - wled
+          # port: 21324
+      - addressable_color_wipe
+      - addressable_fireworks
+      - addressable_scan
+      - addressable_twinkle
+      - addressable_random_twinkle
+      - addressable_flicker
+
+    # on_turn_on:
+    #   then:
+    #     - light.control:
+    #         id: led_node_1
+    #         effect: wled
