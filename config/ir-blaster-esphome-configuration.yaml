@@ -6,6 +6,7 @@ esp8266:
 
 substitutions:
   ip_address: !secret ir_blaster_ip
+  command_repeats: 1
 
 <<: !include base-esphome-configuration.yaml
 
@@ -26,4 +27,57 @@ switch:
     turn_on_action:
       remote_transmitter.transmit_nec:
         address: 0x7F80
+        command: 0xFA05
+        command_repeats: $command_repeats
+  - platform: template
+    name: "HDMI Switch In2 Out1"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x7F80
+        command: 0xF906
+        command_repeats: $command_repeats
+  - platform: template
+    name: "HDMI Switch In3 Out1"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x7F80
+        command: 0xF609
+        command_repeats: $command_repeats
+  - platform: template
+    name: "HDMI Switch In4 Out1"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x7F80
         command: 0xF50A
+        command_repeats: $command_repeats
+
+
+  - platform: template
+    name: "HDMI Switch In1 Out2"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x7F80
+        command: 0xDA25
+        command_repeats: $command_repeats
+
+  - platform: template
+    name: "HDMI Switch In2 Out2"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x7F80
+        command: 0xD926
+        command_repeats: $command_repeats
+  - platform: template
+    name: "HDMI Switch In3 Out2"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x7F80
+        command: 0xD827
+        command_repeats: $command_repeats
+  - platform: template
+    name: "HDMI Switch In4 Out2"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x7F80
+        command: 0xD728
+        command_repeats: $command_repeats

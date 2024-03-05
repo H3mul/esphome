@@ -1,4 +1,5 @@
 .venv
-/.esphome
+config/.gitignore
+.esphome
 secrets.yaml
 .decrypted*
