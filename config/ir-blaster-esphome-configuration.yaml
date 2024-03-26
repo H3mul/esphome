@@ -6,7 +6,7 @@ esp8266:
 
 substitutions:
   ip_address: !secret ir_blaster_ip
-  command_repeats: 1
+  command_repeats: "5"
 
 <<: !include base-esphome-configuration.yaml
 
