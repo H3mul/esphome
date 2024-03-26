@@ -10,11 +10,11 @@ substitutions:
 
 <<: !include base-esphome-configuration.yaml
 
-remote_receiver:
-  pin:
-    number: GPIO14
-    inverted: true
-  dump: all
+# remote_receiver:
+#   pin:
+#     number: GPIO14
+#     inverted: true
+#   dump: all
 
 remote_transmitter:
   pin:
