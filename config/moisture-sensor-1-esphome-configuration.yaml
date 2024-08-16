@@ -1,0 +1,16 @@
+esphome:
+  name: moisture-sensor-1
+
+esp32:
+  board: esp32doit-devkit-v1
+
+substitutions:
+  ip_address: !secret moisture_sensor_1_ip
+
+<<: !include base-esphome-configuration.yaml
+
+sensor:
+  - platform: adc
+    pin: GPIO32
+    name: "ADC Test"
+    update_interval: 15s
