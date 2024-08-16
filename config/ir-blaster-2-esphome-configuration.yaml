@@ -29,3 +29,10 @@ switch:
         address: 0x6B86
         command: 0xF50A
         command_repeats: $command_repeats
+  - platform: template
+    name: "Projector Mute"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0x6B86
+        command: 0xB54A
+        command_repeats: $command_repeats
