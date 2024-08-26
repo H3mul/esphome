@@ -9,8 +9,34 @@ substitutions:
 
 <<: !include base-esphome-configuration.yaml
 
+i2c:
+  scan: false
+  id: bus_a
+  sda: GPIO21
+  scl: GPIO22
+
+ads1115:
+  - address: 0x48
+
 sensor:
-  - platform: adc
-    pin: GPIO32
-    name: "ADC Test"
-    update_interval: 15s
+  - platform: ads1115
+    multiplexer: 'A0_GND'
+    name: "Test ADS1115 Channel A0-GND"
+    update_interval: 1s
+    gain: 2.048
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    filters:
+      - median:
+          window_size: 4
+          send_every: 2
+          send_first_at: 1
+      - calibrate_polynomial:
+          degree: 2
+          datapoints:
+          - 1.02 -> 100.00
+          - 1.19 -> 50.00
+          - 2.05 -> 0.00
+      - clamp:
+          min_value: 0
+          max_value: 100
