@@ -21,10 +21,10 @@ remote_transmitter:
     number: GPIO4
   carrier_duty_percent: 50%
 
-switch:
+button:
   - platform: template
     name: "Stars Power"
-    turn_on_action:
+    on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
         command: 0xBA45
@@ -32,7 +32,7 @@ switch:
 
   - platform: template
     name: "Stars Toggle Aurora"
-    turn_on_action:
+    on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
         command: 0xB946
@@ -40,7 +40,7 @@ switch:
 
   - platform: template
     name: "Stars Toggle Laser"
-    turn_on_action:
+    on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
         command: 0xB847
@@ -48,7 +48,7 @@ switch:
 
   - platform: template
     name: "Stars Red"
-    turn_on_action:
+    on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
         command: 0xBB44
@@ -56,7 +56,7 @@ switch:
 
   - platform: template
     name: "Stars Blue"
-    turn_on_action:
+    on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
         command: 0xE916
@@ -64,7 +64,7 @@ switch:
 
   - platform: template
     name: "Stars Green"
-    turn_on_action:
+    on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
         command: 0xBC43
@@ -72,7 +72,7 @@ switch:
 
   - platform: template
     name: "Stars White"
-    turn_on_action:
+    on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
         command: 0xF20D
