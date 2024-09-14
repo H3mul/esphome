@@ -5,27 +5,75 @@ esp8266:
   board: esp8285
 
 substitutions:
-  # ip_address: !secret ir_blaster_2_ip
+  ip_address: !secret ir_blaster_3_ip
   command_repeats: "3"
 
 <<: !include base-esphome-configuration.yaml
 
-remote_receiver:
-  pin:
-    number: GPIO14
-    inverted: true
-  dump: all
+# remote_receiver:
+#   pin:
+#     number: GPIO14
+#     inverted: true
+#   dump: all
 
 remote_transmitter:
   pin:
     number: GPIO4
   carrier_duty_percent: 50%
 
-# switch:
-#   - platform: template
-#     name: "Projector Power"
-#     turn_on_action:
-#       remote_transmitter.transmit_nec:
-#         address: 0x6B86
-#         command: 0xF50A
-#         command_repeats: $command_repeats
+switch:
+  - platform: template
+    name: "Stars Power"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0xFF00
+        command: 0xBA45
+        command_repeats: $command_repeats
+
+  - platform: template
+    name: "Stars Toggle Aurora"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0xFF00
+        command: 0xB946
+        command_repeats: $command_repeats
+
+  - platform: template
+    name: "Stars Toggle Laser"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0xFF00
+        command: 0xB847
+        command_repeats: $command_repeats
+
+  - platform: template
+    name: "Stars Red"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0xFF00
+        command: 0xBB44
+        command_repeats: $command_repeats
+
+  - platform: template
+    name: "Stars Blue"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0xFF00
+        command: 0xE916
+        command_repeats: $command_repeats
+
+  - platform: template
+    name: "Stars Green"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0xFF00
+        command: 0xBC43
+        command_repeats: $command_repeats
+
+  - platform: template
+    name: "Stars White"
+    turn_on_action:
+      remote_transmitter.transmit_nec:
+        address: 0xFF00
+        command: 0xF20D
+        command_repeats: $command_repeats
