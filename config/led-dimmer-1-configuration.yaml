@@ -1,0 +1,21 @@
+substitutions:
+  ip_address: !secret led_dimmer_node_1
+
+esphome:
+  name: led_dimmer_node_1
+  platform: ESP8266
+  board: d1_mini
+
+<<: !include base-esphome-configuration.yaml
+
+output:
+  - platform: esp8266_pwm
+    pin: D1
+    frequency: 1000 Hz
+    id: pwm_output
+
+# Example usage in a light
+light:
+  - platform: monochromatic
+    output: pwm_output
+    name: "Kitchen Under Cabinet Light"
