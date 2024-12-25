@@ -10,7 +10,7 @@ esphome:
 
 output:
   - platform: esp8266_pwm
-    pin: D1
+    pin: GPIO5
     frequency: 1000 Hz
     id: pwm_output
 
@@ -19,3 +19,5 @@ light:
   - platform: monochromatic
     output: pwm_output
     name: "Kitchen Under Cabinet Light"
+    restore_mode: RESTORE_DEFAULT_OFF
+    default_transition_length: 3s
