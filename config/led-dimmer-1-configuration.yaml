@@ -10,14 +10,51 @@ esphome:
 
 output:
   - platform: esp8266_pwm
-    pin: GPIO5
+    pin: D8
     frequency: 1000 Hz
     id: pwm_output
 
 # Example usage in a light
 light:
   - platform: monochromatic
+    id: led_light
     output: pwm_output
     name: "Kitchen Under Cabinet Light"
     restore_mode: RESTORE_DEFAULT_OFF
-    default_transition_length: 3s
+    default_transition_length: 1s
+
+sensor:
+  - platform: rotary_encoder
+    name: "Kitchen Under Cabinet Light Manual Dimmer"
+    pin_a: D1
+    pin_b: D2
+    on_clockwise:
+      - light.dim_relative:
+          id: led_light
+          relative_brightness: 10%
+    on_anticlockwise:
+      - light.dim_relative:
+          id: led_light
+          relative_brightness: -10%
+
+binary_sensor:    
+  - platform: gpio
+    pin: D5
+    name: "Kitchen Under Cabinet Light Motion Sensor"
+    id: led_motion_sensor
+    filters:
+      - settle: 20s
+    on_press:
+      then:
+        light.turn_on: led_light
+    on_release:
+      then:
+        light.turn_off: led_light
+
+  - platform: gpio
+    pin: D3
+    name: "Kitchen Under Cabinet Light Manual Push Button"
+    id: toggle_led
+    on_press:
+      then:
+        light.toggle: led_light
