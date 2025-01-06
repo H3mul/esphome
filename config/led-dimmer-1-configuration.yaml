@@ -2,16 +2,22 @@ substitutions:
   ip_address: !secret led_dimmer_node_1
 
 esphome:
-  name: led_dimmer_node_1
+  name: led-dimmer-node-1
   platform: ESP8266
   board: d1_mini
+  on_boot:
+    - priority: 600
+      then:
+        - light.control:
+            id: led_light
+            brightness: 75%
 
 <<: !include base-esphome-configuration.yaml
 
 output:
   - platform: esp8266_pwm
     pin: D8
-    frequency: 1000 Hz
+    frequency: 5000 Hz
     id: pwm_output
 
 # Example usage in a light
@@ -19,41 +25,37 @@ light:
   - platform: monochromatic
     id: led_light
     output: pwm_output
-    name: "Kitchen Under Cabinet Light"
-    restore_mode: RESTORE_DEFAULT_OFF
-    default_transition_length: 1s
+    name: "Kitchen Light"
+    default_transition_length: 1.5s
 
 sensor:
   - platform: rotary_encoder
-    name: "Kitchen Under Cabinet Light Manual Dimmer"
+    name: "Kitchen Light Manual Dimmer"
     pin_a: D1
     pin_b: D2
     on_clockwise:
       - light.dim_relative:
           id: led_light
-          relative_brightness: 10%
+          relative_brightness: 5%
     on_anticlockwise:
       - light.dim_relative:
           id: led_light
-          relative_brightness: -10%
+          relative_brightness: -5%
 
 binary_sensor:    
   - platform: gpio
     pin: D5
-    name: "Kitchen Under Cabinet Light Motion Sensor"
+    name: "Kitchen Light Motion Sensor"
     id: led_motion_sensor
     filters:
-      - settle: 20s
-    on_press:
-      then:
-        light.turn_on: led_light
-    on_release:
-      then:
-        light.turn_off: led_light
+      - settle: 2s
+      - delayed_on_off:
+          time_on: 4s
+          time_off: 10s
 
   - platform: gpio
     pin: D3
-    name: "Kitchen Under Cabinet Light Manual Push Button"
+    name: "Kitchen Light Manual Push Button"
     id: toggle_led
     on_press:
       then:
