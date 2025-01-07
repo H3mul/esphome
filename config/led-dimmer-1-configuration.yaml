@@ -9,8 +9,8 @@ esphome:
     - priority: 600
       then:
         - light.control:
-            id: led_light
-            brightness: 75%
+            id: kitchen_light
+            brightness: 70%
 
 <<: !include base-esphome-configuration.yaml
 
@@ -23,7 +23,7 @@ output:
 # Example usage in a light
 light:
   - platform: monochromatic
-    id: led_light
+    id: kitchen_light
     output: pwm_output
     name: "Kitchen Light"
     default_transition_length: 1.5s
@@ -35,11 +35,11 @@ sensor:
     pin_b: D2
     on_clockwise:
       - light.dim_relative:
-          id: led_light
+          id: kitchen_light
           relative_brightness: 5%
     on_anticlockwise:
       - light.dim_relative:
-          id: led_light
+          id: kitchen_light
           relative_brightness: -5%
 
 binary_sensor:    
@@ -48,15 +48,32 @@ binary_sensor:
     name: "Kitchen Light Motion Sensor"
     id: led_motion_sensor
     filters:
-      - settle: 2s
+      - settle: !lambda |-
+            if (id(kitchen_light).current_values.is_on()) {
+              return 3000;
+            } else {
+              return 2000;
+            }
       - delayed_on_off:
-          time_on: 4s
-          time_off: 10s
+          time_on: !lambda |-
+            if (id(kitchen_light).current_values.is_on()) {
+              return 0;
+            } else {
+              return 5000;
+            }
+          time_off: !lambda |-
+            if (id(kitchen_light).current_values.is_on()) {
+              return 60000;
+            } else {
+              return 0;
+            }
 
   - platform: gpio
-    pin: D3
+    pin:
+      number: D3
+      inverted: true
     name: "Kitchen Light Manual Push Button"
     id: toggle_led
     on_press:
       then:
-        light.toggle: led_light
+        light.toggle: kitchen_light
