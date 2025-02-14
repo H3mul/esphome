@@ -1,0 +1,127 @@
+substitutions:
+  ip_address: !secret metronome_ip
+
+<<: !include base-esphome-configuration.yaml
+
+esp32:
+  board: esp32-c3-devkitm-1
+  variant: esp32c3
+
+esphome:
+  name: metronome-node-1
+  friendly_name: Metronome
+  platformio_options:
+    board_build.flash_mode: dio
+
+number:
+  - id: bpm
+    name: BPM
+    platform: template
+    optimistic: true
+    mode: box
+    unit_of_measurement: bpm
+    min_value: 30
+    max_value: 200
+    step: 5
+    initial_value: 80
+    restore_value: true
+
+light:
+  - platform: neopixelbus
+    variant: WS2812X
+    # type: BRG
+    pin: GPIO3
+    num_leds: 24
+    name: "Metronome LED"
+    id: metronome_led
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - addressable_scan:
+          name: Metronome_old
+          move_interval: 10ms
+          scan_width: 2
+      - addressable_lambda:
+          name: Metronome
+          update_interval: 5ms
+          lambda: |-
+            static int step = 0;
+            static bool direction = 1;
+
+            static int start_t = 0;
+            static int at_led = 0;
+            static int scan_width = 1;
+
+            const int period = 60000.0f / id(bpm).state;
+            const int now = millis();
+
+            if(initial_run) {
+              start_t = now;
+            }
+
+            const int at_led_abs = (now - start_t) / 2 % period * it.size() * 2 / period;
+
+            at_led = at_led_abs;
+            if (at_led_abs > it.size()) {
+              at_led = it.size() - at_led;
+            }
+
+            it.all() = ESPColor::BLACK;
+            for (int i = 0; i < scan_width; i++) {
+              it[at_led + i] = current_color;
+            }
+
+            it.schedule_show();
+
+    on_turn_on:
+      - light.control: 
+          id: metronome_led
+          effect: "Metronome"
+
+binary_sensor:
+  - id: metronome_toggle_button
+    internal: true
+    platform: gpio
+    pin:
+      number: GPIO2
+      inverted: true
+    on_press:
+      then:
+        light.toggle: metronome_led
+
+sensor:
+  - platform: rotary_encoder
+    internal: true
+    name: "BPM Manual Input"
+    pin_a: GPIO0
+    pin_b: GPIO1
+    on_clockwise:
+      - number.increment:
+          id: bpm
+          cycle: false
+    on_anticlockwise:
+      - number.decrement:
+          id: bpm
+          cycle: false
+
+i2c:
+  sda: GPIO8
+  scl: GPIO9
+  frequency: 300kHz
+
+font:
+  - file: "gfonts://Open Sans"
+    id: bpm_font
+    size: 14
+
+  - file: "gfonts://Open Sans"
+    id: bpm_value_font
+    size: 30 
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    address: 0x3C
+    update_interval: 30ms
+    lambda: |-
+      it.printf(it.get_width()/2, 0, id(bpm_value_font), TextAlign::TOP_CENTER, "%.0f", id(bpm).state);
+      it.print(it.get_width()/2, it.get_height(), id(bpm_font), TextAlign::BOTTOM_CENTER, "BPM");
