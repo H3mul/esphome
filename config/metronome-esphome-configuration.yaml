@@ -12,6 +12,8 @@ esphome:
   friendly_name: Metronome
   platformio_options:
     board_build.flash_mode: dio
+  includes:
+    - lib/fakelight.h
 
 number:
   - id: bpm
@@ -25,51 +27,101 @@ number:
     step: 5
     initial_value: 80
     restore_value: true
+  - id: tailwidth
+    name: Tail Width
+    platform: template
+    optimistic: true
+    mode: box
+    unit_of_measurement: leds
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 3
+    restore_value: true
+  - id: endwidth
+    name: Edge Color Width
+    platform: template
+    optimistic: true
+    mode: box
+    unit_of_measurement: leds
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 7
+    restore_value: true
 
 light:
+  - platform: custom
+    lambda: |-
+      auto light_out = new FakeLightOutput();
+      App.register_component(light_out);
+      return {light_out};
+    lights:
+      - name: "LED edges"
+        id: metronome_led_ends
+        restore_mode: RESTORE_DEFAULT_OFF
+
   - platform: neopixelbus
     variant: WS2812X
     # type: BRG
     pin: GPIO3
-    num_leds: 24
-    name: "Metronome LED"
+    num_leds: 100
+    name: "LED"
     id: metronome_led
     restore_mode: RESTORE_DEFAULT_OFF
     effects:
-      - addressable_scan:
-          name: Metronome_old
-          move_interval: 10ms
-          scan_width: 2
       - addressable_lambda:
           name: Metronome
           update_interval: 5ms
           lambda: |-
-            static int step = 0;
-            static bool direction = 1;
-
-            static int start_t = 0;
+            // flags
+            static int last_t = 0;
             static int at_led = 0;
-            static int scan_width = 1;
+            static int len = it.size() - 1;
+
+            const LightColorValues endColorValues = id(metronome_led_ends).current_values;
+            const Color endColor = Color(
+                    endColorValues.get_red() * 255,
+                    endColorValues.get_green() * 255,
+                    endColorValues.get_blue() * 255
+                  ).fade_to_black(endColorValues.get_brightness());
+
+            const int tail_width = id(tailwidth).state;
+            const int end_width = id(endwidth).state;
 
             const int period = 60000.0f / id(bpm).state;
+            const int step_t = period / len;
             const int now = millis();
 
             if(initial_run) {
-              start_t = now;
+              last_t = now;
             }
 
-            const int at_led_abs = (now - start_t) / 2 % period * it.size() * 2 / period;
-
-            at_led = at_led_abs;
-            if (at_led_abs > it.size()) {
-              at_led = it.size() - at_led;
+            const int delta_t = now - last_t;
+            if (delta_t < step_t) {
+              return;
             }
+
+            at_led += delta_t / step_t;
 
             it.all() = ESPColor::BLACK;
-            for (int i = 0; i < scan_width; i++) {
-              it[at_led + i] = current_color;
+            for (int i = 0; i < tail_width; i++) {
+              const int strip_position = len - abs((at_led + i) % (len * 2) - len);
+
+              const float dim_factor = 1.0f / (tail_width + 1) * (tail_width - i);
+              const float distance_from_end = min(strip_position, len - strip_position);
+
+              float end_gradient_factor = 0.0;
+              if (distance_from_end <= end_width) {
+                end_gradient_factor = 1.0f / (end_width) * (end_width - distance_from_end);
+              }
+
+              it[strip_position] = current_color.gradient(endColor, end_gradient_factor * 255)
+                                                .fade_to_black(dim_factor * 255);
+                                                
             }
 
+            last_t = now - delta_t % step_t;
             it.schedule_show();
 
     on_turn_on:
