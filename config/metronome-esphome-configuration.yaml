@@ -74,7 +74,6 @@ light:
           name: Metronome
           update_interval: 5ms
           lambda: |-
-            // flags
             static int last_t = 0;
             static int at_led = 0;
             static int len = it.size() - 1;
@@ -107,7 +106,6 @@ light:
             it.all() = ESPColor::BLACK;
             for (int i = 0; i < tail_width; i++) {
               const int strip_position = len - abs((at_led + i) % (len * 2) - len);
-
               const float dim_factor = 1.0f / (tail_width + 1) * (tail_width - i);
               const float distance_from_end = min(strip_position, len - strip_position);
 
@@ -118,7 +116,6 @@ light:
 
               it[strip_position] = current_color.gradient(endColor, end_gradient_factor * 255)
                                                 .fade_to_black(dim_factor * 255);
-                                                
             }
 
             last_t = now - delta_t % step_t;
