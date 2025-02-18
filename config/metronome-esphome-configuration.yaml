@@ -141,8 +141,8 @@ sensor:
   - platform: rotary_encoder
     internal: true
     name: "BPM Manual Input"
-    pin_a: GPIO0
-    pin_b: GPIO1
+    pin_a: GPIO1
+    pin_b: GPIO0
     on_clockwise:
       - number.increment:
           id: bpm
@@ -153,8 +153,8 @@ sensor:
           cycle: false
 
 i2c:
-  sda: GPIO8
-  scl: GPIO9
+  sda: GPIO9
+  scl: GPIO8
   frequency: 300kHz
 
 font:
