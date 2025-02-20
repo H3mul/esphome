@@ -3,3 +3,4 @@ config/.gitignore
 .esphome
 secrets.yaml
 .decrypted*
+*.blend1
