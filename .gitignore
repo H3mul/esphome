@@ -4,3 +4,4 @@ config/.gitignore
 secrets.yaml
 .decrypted*
 *.blend1
+*.gcode
