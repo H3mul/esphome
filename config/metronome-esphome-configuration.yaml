@@ -65,14 +65,14 @@ light:
     variant: WS2812X
     # type: BRG
     pin: GPIO3
-    num_leds: 100
+    num_leds: 72
     name: "LED"
     id: metronome_led
     restore_mode: RESTORE_DEFAULT_OFF
     effects:
       - addressable_lambda:
           name: Metronome
-          update_interval: 5ms
+          update_interval: 0ms
           lambda: |-
             static int last_t = 0;
             static int at_led = 0;
@@ -121,6 +121,55 @@ light:
             last_t = now - delta_t % step_t;
             it.schedule_show();
 
+      - addressable_lambda:
+          name: Metronome static ends
+          update_interval: 0ms
+          lambda: |-
+            static int last_t = 0;
+            static int at_led = 0;
+            static int len = it.size() - 1;
+
+            const LightColorValues endColorValues = id(metronome_led_ends).current_values;
+            const Color endColor = Color(
+                    endColorValues.get_red() * 255,
+                    endColorValues.get_green() * 255,
+                    endColorValues.get_blue() * 255
+                  ).fade_to_black(endColorValues.get_brightness());
+
+            const int tail_width = id(tailwidth).state;
+            const int end_width = id(endwidth).state;
+
+            const int period = 60000.0f / id(bpm).state;
+            const int step_t = period / len;
+            const int now = millis();
+
+            if(initial_run) {
+              last_t = now;
+            }
+
+            const int delta_t = now - last_t;
+            if (delta_t < step_t) {
+              return;
+            }
+
+            at_led += delta_t / step_t;
+
+            it.all() = ESPColor::BLACK;
+            for (int i = 0; i < tail_width; i++) {
+              const int strip_position = len - abs((at_led + i) % (len * 2) - len);
+              const float dim_factor = 1.0f / (tail_width + 1) * (tail_width - i);
+
+              Color color = current_color;
+              if (strip_position == 0 || strip_position == len) {
+                color = endColor;
+              }
+
+              it[strip_position] = color.fade_to_black(dim_factor * 255);
+            }
+
+            last_t = now - delta_t % step_t;
+            it.schedule_show();
+
     on_turn_on:
       - light.control: 
           id: metronome_led
@@ -141,8 +190,8 @@ sensor:
   - platform: rotary_encoder
     internal: true
     name: "BPM Manual Input"
-    pin_a: GPIO1
-    pin_b: GPIO0
+    pin_a: GPIO0
+    pin_b: GPIO1
     on_clockwise:
       - number.increment:
           id: bpm
