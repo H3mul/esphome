@@ -15,6 +15,10 @@ esphome:
   includes:
     - lib/fakelight.h
 
+web_server:
+    port: 80
+    version: 3
+
 number:
   - id: bpm
     name: BPM
