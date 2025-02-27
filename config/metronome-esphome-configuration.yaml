@@ -36,7 +36,6 @@ number:
     name: BPM
     platform: template
     optimistic: true
-    # mode: box
     unit_of_measurement: bpm
     min_value: 20
     max_value: 300
@@ -44,10 +43,9 @@ number:
     initial_value: 80
     restore_value: true
   - id: tailwidth
-    name: Tail Width
+    name: Trail length
     platform: template
     optimistic: true
-    # mode: box
     unit_of_measurement: leds
     min_value: 1
     max_value: 100
@@ -56,10 +54,9 @@ number:
     restore_value: true
     entity_category: config
   - id: endwidth
-    name: Edge Color Width
+    name: Beat Color Width
     platform: template
     optimistic: true
-    # mode: box
     unit_of_measurement: leds
     min_value: 0
     max_value: 100
@@ -75,23 +72,84 @@ light:
       App.register_component(light_out);
       return {light_out};
     lights:
-      - name: "LED edges"
+      - name: "Beat Edge Color"
         id: metronome_led_ends
         restore_mode: RESTORE_DEFAULT_OFF
         entity_category: config
 
-  - platform: neopixelbus
-    variant: WS2812X
-    # type: BRG
+  - platform: esp32_rmt_led_strip
+    chipset: WS2812
+    rmt_channel: 1
+    rgb_order: GRB
     pin: GPIO3
     num_leds: 72
-    name: "LED"
+    name: "Metronome"
     id: metronome_led
+    max_refresh_rate: 8ms
     restore_mode: RESTORE_DEFAULT_OFF
+    default_transition_length: 200ms
     effects:
       - addressable_lambda:
-          name: Metronome
-          update_interval: 0ms
+          name: Pendulum
+          update_interval: 10ms
+          lambda: |-
+            static int last_t = 0;
+            static int at_led = 0;
+            static int len = it.size() - 1;
+            static int center = it.size() / 2;
+
+            const LightColorValues endColorValues = id(metronome_led_ends).current_values;
+            const Color endColor = Color(
+                    endColorValues.get_red() * 255,
+                    endColorValues.get_green() * 255,
+                    endColorValues.get_blue() * 255
+                  ).fade_to_black(endColorValues.get_brightness());
+
+            const int tail_width = id(tailwidth).state;
+            const int end_width = id(endwidth).state;
+
+            const int period = 60000.0f / id(bpm).state;
+            const int step_t = period / len;
+            const int now = millis();
+
+            if(initial_run) {
+              last_t = now;
+            }
+
+            const int delta_t = now - last_t;
+            if (delta_t < step_t) {
+              return;
+            }
+
+            at_led = (at_led + delta_t / step_t) % (len * 2);
+
+            it.all() = ESPColor::BLACK;
+
+            const int head_position = len - abs(at_led - len);
+
+            const int head_len = abs(center - head_position);
+            const int dir = (center - head_position) > 0 ? 1 : -1;
+
+            for (int i = 0; i < head_len; i++) {
+              const int strip_position = head_position + i * dir;
+              const float distance_from_end = min(strip_position, len - strip_position);
+
+              float dim_factor = max((i - tail_width/2) / (float) head_len, 0.0f);
+
+              float end_gradient_factor = 0.0;
+              if (distance_from_end < end_width) {
+                end_gradient_factor = (float)(end_width - distance_from_end) / end_width;
+              }
+
+              it[strip_position] = current_color.gradient(endColor, end_gradient_factor * 255)
+                                                .fade_to_black(dim_factor * 255);
+            }
+
+            last_t = now - delta_t % step_t;
+            it.schedule_show();
+      - addressable_lambda:
+          name: Running Light
+          update_interval: 10ms
           lambda: |-
             static int last_t = 0;
             static int at_led = 0;
@@ -120,17 +178,21 @@ light:
               return;
             }
 
-            at_led += delta_t / step_t;
+            at_led = (at_led + delta_t / step_t) % (len * 2);
 
             it.all() = ESPColor::BLACK;
             for (int i = 0; i < tail_width; i++) {
               const int strip_position = len - abs((at_led + i) % (len * 2) - len);
-              const float dim_factor = (float)(tail_width - i) / tail_width;
               const float distance_from_end = min(strip_position, len - strip_position);
 
+              float dim_factor = 0.0;
+              if (i < tail_width - 1) {
+                dim_factor = 1 - (float) i / (float)tail_width;
+              }
+
               float end_gradient_factor = 0.0;
-              if (distance_from_end <= end_width) {
-                end_gradient_factor = (float)(end_width - distance_from_end) / (end_width);
+              if (distance_from_end < end_width) {
+                end_gradient_factor = (float)(end_width - distance_from_end) / end_width;
               }
 
               it[strip_position] = current_color.gradient(endColor, end_gradient_factor * 255)
@@ -142,7 +204,7 @@ light:
     on_turn_on:
       - light.control: 
           id: metronome_led
-          effect: "Metronome"
+          effect: "Running Light"
 
 binary_sensor:
   - id: metronome_toggle_button
@@ -179,7 +241,7 @@ text_sensor:
 i2c:
   sda: GPIO9
   scl: GPIO8
-  frequency: 300kHz
+  frequency: 800kHz
 
 font:
   - file: "gfonts://Open Sans"
@@ -196,7 +258,7 @@ display:
   - platform: ssd1306_i2c
     model: "SSD1306 128x64"
     address: 0x3C
-    update_interval: 30ms
+    update_interval: 100ms
     lambda: |-
       int _ = 0;
       int bpmLabelX = 0;
