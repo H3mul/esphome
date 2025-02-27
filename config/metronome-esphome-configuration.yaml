@@ -1,7 +1,19 @@
 substitutions:
   ip_address: !secret metronome_ip
 
-<<: !include base-esphome-configuration.yaml
+packages:
+  base: !include base-esphome-configuration.yaml
+
+wifi:
+  networks:
+    - ssid: !secret pixel_hotspot_ssid
+      password: !secret pixel_hotspot_password
+    - ssid: !secret travel_router_ssid
+      password: !secret travel_router_password
+  fast_connect: false 
+
+logger:
+  level: INFO
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -24,10 +36,10 @@ number:
     name: BPM
     platform: template
     optimistic: true
-    mode: box
+    # mode: box
     unit_of_measurement: bpm
-    min_value: 30
-    max_value: 200
+    min_value: 20
+    max_value: 300
     step: 5
     initial_value: 80
     restore_value: true
@@ -35,24 +47,26 @@ number:
     name: Tail Width
     platform: template
     optimistic: true
-    mode: box
+    # mode: box
     unit_of_measurement: leds
-    min_value: 0
+    min_value: 1
     max_value: 100
     step: 1
     initial_value: 3
     restore_value: true
+    entity_category: config
   - id: endwidth
     name: Edge Color Width
     platform: template
     optimistic: true
-    mode: box
+    # mode: box
     unit_of_measurement: leds
     min_value: 0
     max_value: 100
     step: 1
     initial_value: 7
     restore_value: true
+    entity_category: config
 
 light:
   - platform: custom
@@ -64,6 +78,7 @@ light:
       - name: "LED edges"
         id: metronome_led_ends
         restore_mode: RESTORE_DEFAULT_OFF
+        entity_category: config
 
   - platform: neopixelbus
     variant: WS2812X
@@ -110,12 +125,12 @@ light:
             it.all() = ESPColor::BLACK;
             for (int i = 0; i < tail_width; i++) {
               const int strip_position = len - abs((at_led + i) % (len * 2) - len);
-              const float dim_factor = 1.0f / (tail_width + 1) * (tail_width - i);
+              const float dim_factor = (float)(tail_width - i) / tail_width;
               const float distance_from_end = min(strip_position, len - strip_position);
 
               float end_gradient_factor = 0.0;
               if (distance_from_end <= end_width) {
-                end_gradient_factor = 1.0f / (end_width) * (end_width - distance_from_end);
+                end_gradient_factor = (float)(end_width - distance_from_end) / (end_width);
               }
 
               it[strip_position] = current_color.gradient(endColor, end_gradient_factor * 255)
@@ -124,56 +139,6 @@ light:
 
             last_t = now - delta_t % step_t;
             it.schedule_show();
-
-      - addressable_lambda:
-          name: Metronome static ends
-          update_interval: 0ms
-          lambda: |-
-            static int last_t = 0;
-            static int at_led = 0;
-            static int len = it.size() - 1;
-
-            const LightColorValues endColorValues = id(metronome_led_ends).current_values;
-            const Color endColor = Color(
-                    endColorValues.get_red() * 255,
-                    endColorValues.get_green() * 255,
-                    endColorValues.get_blue() * 255
-                  ).fade_to_black(endColorValues.get_brightness());
-
-            const int tail_width = id(tailwidth).state;
-            const int end_width = id(endwidth).state;
-
-            const int period = 60000.0f / id(bpm).state;
-            const int step_t = period / len;
-            const int now = millis();
-
-            if(initial_run) {
-              last_t = now;
-            }
-
-            const int delta_t = now - last_t;
-            if (delta_t < step_t) {
-              return;
-            }
-
-            at_led += delta_t / step_t;
-
-            it.all() = ESPColor::BLACK;
-            for (int i = 0; i < tail_width; i++) {
-              const int strip_position = len - abs((at_led + i) % (len * 2) - len);
-              const float dim_factor = 1.0f / (tail_width + 1) * (tail_width - i);
-
-              Color color = current_color;
-              if (strip_position == 0 || strip_position == len) {
-                color = endColor;
-              }
-
-              it[strip_position] = color.fade_to_black(dim_factor * 255);
-            }
-
-            last_t = now - delta_t % step_t;
-            it.schedule_show();
-
     on_turn_on:
       - light.control: 
           id: metronome_led
@@ -205,6 +170,12 @@ sensor:
           id: bpm
           cycle: false
 
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      internal: true
+      id: metronome_ip
+
 i2c:
   sda: GPIO9
   scl: GPIO8
@@ -214,10 +185,12 @@ font:
   - file: "gfonts://Open Sans"
     id: bpm_font
     size: 14
-
   - file: "gfonts://Open Sans"
     id: bpm_value_font
     size: 30 
+  - file: "gfonts://Open Sans"
+    id: ip_font
+    size: 10 
 
 display:
   - platform: ssd1306_i2c
@@ -225,5 +198,20 @@ display:
     address: 0x3C
     update_interval: 30ms
     lambda: |-
-      it.printf(it.get_width()/2, 0, id(bpm_value_font), TextAlign::TOP_CENTER, "%.0f", id(bpm).state);
-      it.print(it.get_width()/2, it.get_height(), id(bpm_font), TextAlign::BOTTOM_CENTER, "BPM");
+      int _ = 0;
+      int bpmLabelX = 0;
+      int bpmLabelY = 0;
+      int bpmLabelWidth = 0;
+      int bpmLabelHeight = 0;
+      const int yAdjust = 10;
+
+      char bpmValue[100] = { 0 };
+      sprintf(bpmValue, "%.0f", id(bpm).state);
+
+      it.get_text_bounds(it.get_width()/2, -yAdjust, &bpmValue[0], id(bpm_value_font), TextAlign::TOP_CENTER,
+        &bpmLabelX, &bpmLabelX, &bpmLabelWidth, &bpmLabelHeight);
+
+      it.printf(it.get_width()/2, -yAdjust, id(bpm_value_font), TextAlign::TOP_CENTER, bpmValue);
+      it.print(it.get_width()/2, bpmLabelY + bpmLabelHeight - 2*yAdjust, id(bpm_font), TextAlign::TOP_CENTER, "BPM");
+      it.printf(0, it.get_height(), id(ip_font), TextAlign::BOTTOM_LEFT, "IP: %s",
+        id(metronome_ip).state != "" ? id(metronome_ip).state.c_str() : "Disconnected");
