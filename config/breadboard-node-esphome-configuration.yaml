@@ -1,0 +1,24 @@
+packages:
+  base: !include base-esphome-configuration.yaml
+
+esphome:
+  name: breadboard-node-1
+  platform: ESP32
+  board: esp32dev
+
+# wifi:
+#   use_address:
+
+output:
+  - platform: ledc
+    pin: GPIO2
+    frequency: 5000 Hz
+    id: pwm_output
+
+light:
+  - platform: monochromatic
+    id: pwm_light
+    output: pwm_output
+    name: "PWM light"
+    default_transition_length: 1s
+
