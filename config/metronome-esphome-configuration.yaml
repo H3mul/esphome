@@ -1,5 +1,3 @@
-substitutions:
-  ip_address: !secret metronome_ip
 
 packages:
   base: !include base-esphome-configuration.yaml
@@ -10,7 +8,13 @@ wifi:
       password: !secret pixel_hotspot_password
     - ssid: !secret travel_router_ssid
       password: !secret travel_router_password
+    - ssid: !secret zhenya_hotspot_ssid
+      password: !secret zhenya_hotspot_password
+
   fast_connect: false 
+  # use_address: !secret metronome_ip
+  # use_address: 192.168.246.45
+  use_address: 192.168.43.159
 
 logger:
   level: INFO
@@ -36,6 +40,7 @@ number:
     name: BPM
     platform: template
     optimistic: true
+    mode: box
     unit_of_measurement: bpm
     min_value: 20
     max_value: 300
@@ -64,6 +69,17 @@ number:
     initial_value: 7
     restore_value: true
     entity_category: config
+  - id: bpm_calibration
+    name: BPM calibration factor
+    platform: template
+    mode: box
+    optimistic: true
+    min_value: 0
+    max_value: 2
+    step: 0.001
+    initial_value: 1.037037037
+    restore_value: true
+    entity_category: config
 
 light:
   - platform: custom
@@ -83,15 +99,15 @@ light:
     rgb_order: GRB
     pin: GPIO3
     num_leds: 72
-    name: "Metronome"
+    name: "LED"
     id: metronome_led
-    max_refresh_rate: 8ms
+    max_refresh_rate: 10ms
     restore_mode: RESTORE_DEFAULT_OFF
     default_transition_length: 200ms
     effects:
       - addressable_lambda:
           name: Pendulum
-          update_interval: 10ms
+          update_interval: 16ms
           lambda: |-
             static int last_t = 0;
             static int at_led = 0;
@@ -108,7 +124,7 @@ light:
             const int tail_width = id(tailwidth).state;
             const int end_width = id(endwidth).state;
 
-            const int period = 60000.0f / id(bpm).state;
+            const int period = 60000.0f / id(bpm).state * id(bpm_calibration).state;
             const int step_t = period / len;
             const int now = millis();
 
@@ -149,7 +165,7 @@ light:
             it.schedule_show();
       - addressable_lambda:
           name: Running Light
-          update_interval: 10ms
+          update_interval: 16ms
           lambda: |-
             static int last_t = 0;
             static int at_led = 0;
@@ -165,7 +181,7 @@ light:
             const int tail_width = id(tailwidth).state;
             const int end_width = id(endwidth).state;
 
-            const int period = 60000.0f / id(bpm).state;
+            const int period = 60000.0f / id(bpm).state * id(bpm_calibration).state;
             const int step_t = period / len;
             const int now = millis();
 
