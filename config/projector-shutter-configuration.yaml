@@ -1,0 +1,78 @@
+packages:
+  base: !include base-esphome-configuration.yaml
+
+wifi:
+  networks:
+    - ssid: Wokwi-GUEST
+    - ssid: !secret pixel_hotspot_ssid
+      password: !secret pixel_hotspot_password
+    - ssid: !secret travel_router_ssid
+      password: !secret travel_router_password
+
+#   use_address: 192.168.43.159
+
+logger:
+  hardware_uart: UART0
+  level: INFO
+
+esp32:
+  board: esp32-c3-devkitm-1
+  variant: esp32c3
+
+esphome:
+  name: projector-node
+  friendly_name: Metronome
+  platformio_options:
+    board_build.flash_mode: dio
+
+web_server:
+    port: 80
+    version: 3
+
+number:
+  - id: shutter_closed_position
+    name: Shutter Closed Position
+    platform: template
+    optimistic: true
+    unit_of_measurement: '%'
+    min_value: -100
+    max_value: 100
+    step: 1
+    initial_value: 0
+    restore_value: true
+    entity_category: config
+  - id: shutter_open_position
+    name: Shutter Open Position
+    platform: template
+    optimistic: true
+    unit_of_measurement: '%'
+    min_value: -100
+    max_value: 100
+    step: 1
+    initial_value: 0
+    restore_value: true
+    entity_category: config
+
+output:
+  - platform: ledc
+    id: servo_output
+    pin: GPIO3
+    frequency: 50 Hz
+
+servo:
+  - id: shutter_servo
+    output: servo_output
+
+switch:
+  - platform: template
+    name: Close Shutter
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - servo.write:
+          id: shutter_servo
+          level: !lambda 'return id(shutter_closed_position).state / 100.0;'
+    turn_off_action:
+      - servo.write:
+          id: shutter_servo
+          level: !lambda 'return id(shutter_open_position).state / 100.0;'
