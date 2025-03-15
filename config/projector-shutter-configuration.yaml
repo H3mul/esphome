@@ -8,12 +8,11 @@ wifi:
       password: !secret pixel_hotspot_password
     - ssid: !secret travel_router_ssid
       password: !secret travel_router_password
-
-#   use_address: 192.168.43.159
+  fast_connect: false
+  use_address: 10.1.1.215
 
 logger:
-  hardware_uart: UART0
-  level: INFO
+  # level: INFO
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -21,7 +20,7 @@ esp32:
 
 esphome:
   name: projector-node
-  friendly_name: Metronome
+  friendly_name: Projector Shutter
   platformio_options:
     board_build.flash_mode: dio
 
@@ -62,6 +61,7 @@ output:
 servo:
   - id: shutter_servo
     output: servo_output
+    transition_length: 4s
 
 switch:
   - platform: template
