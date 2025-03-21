@@ -13,6 +13,8 @@ wifi:
 
   fast_connect: false
   use_address: 192.168.1.249
+  on_disconnect:
+    - switch.turn_off: close_shutter
 
 logger:
   level: INFO
@@ -72,7 +74,7 @@ switch:
     id: close_shutter
     name: Close Shutter
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
     turn_on_action:
       - servo.write:
           id: shutter_servo
