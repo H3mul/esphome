@@ -23,9 +23,9 @@ esphome:
   # platformio_options:
   #   board_build.flash_mode: dio
 
-  external_components:
-    - source: github://H3mul/esphome-artnet
-      components: [ artnet ]
+external_components:
+  - source: github://H3mul/esphome-artnet
+    components: [ artnet_receiver ]
 
 # Configure the ArtNet receiver with a few test channels
 artnet_receiver:
