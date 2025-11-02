@@ -1,0 +1,43 @@
+packages:
+  base: !include base-esphome-configuration.yaml
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+
+  # fast_connect: false
+  # use_address: 10.1.1.215
+
+logger:
+  # level: INFO
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+esphome:
+  name: artnet-dmx-converter
+  friendly_name: ArtNet to DMX Converter
+  # platformio_options:
+  #   board_build.flash_mode: dio
+
+  external_components:
+    - source: github://H3mul/esphome-artnet
+      components: [ artnet ]
+
+# Configure the ArtNet receiver with a few test channels
+artnet_receiver:
+  id: artnet_receiver_1
+  artnet_universe: 0
+  channels:
+    - channel_number: 1
+      name: "Test Channel 1"
+      id: test_ch1
+    - channel_number: 2
+      name: "Test Channel 2"
+      id: test_ch2
+    - channel_number: 3
+      name: "Test Channel 3"
+      id: test_ch3

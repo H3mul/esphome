@@ -1,8 +1,0 @@
-[wokwi]
-version = 1
-firmware = 'config/.esphome/build/projector-node/.pioenvs/projector-node/firmware.bin'
-elf = 'config/.esphome/build/projector-node/.pioenvs/projector-node/firmware.elf'
-
-[[net.forward]]
-from = 'localhost:8180'
-to = 'target:80'
