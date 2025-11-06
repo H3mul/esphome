@@ -32,6 +32,9 @@ external_components:
   - source: ../../esphome-artnet/components
 
 artnet:
+  name_short: "esp-artnet-dmx"
+  name_long: "ESPHome ArtNet to DMX Node"
+
   output:
     address: 10.1.1.198
 
