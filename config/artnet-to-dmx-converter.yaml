@@ -19,6 +19,7 @@ wifi:
 <<: !include base-esphome-configuration.yaml
 
 logger:
+  baud_rate: 0
   level: DEBUG
   logs:
     text_sensor: INFO
@@ -37,25 +38,26 @@ external_components:
 # Configure DMX bus instances for bidirectional communication
 dmx:
   - id: dmx_bus_a
-    mode: receive
+    mode: send
     name: "Port A"
     enable_pin:
-      number: GPIO19
+      number: GPIO4
     tx_pin:
       number: GPIO25
     rx_pin:
       number: GPIO26
     dmx_port_id: 1
 
-  # - id: dmx_bus_b
-  #   mode: receive
-  #   enable_pin:
-  #     number: GPIO18
-  #   tx_pin:
-  #     number: GPIO17
-  #   rx_pin:
-  #     number: GPIO16
-  #   dmx_port_id: 2
+  - id: dmx_bus_b
+    mode: receive
+    name: "Port B"
+    enable_pin:
+      number: GPIO32
+    tx_pin:
+      number: GPIO19
+    rx_pin:
+      number: GPIO18
+    dmx_port_id: 2
 
 artnet:
   name_short: "esp-artnet-dmx"
@@ -63,124 +65,155 @@ artnet:
 
   output:
     address: 10.1.1.198
+    flush_period: 100ms
 
   route:
-    # artnet_to_dmx:
-    #   - dmx_id: dmx_bus_a
-    #     universe: 0
-
     dmx_to_artnet:
+      - dmx_id: dmx_bus_b
+        universe: 1
+
+    artnet_to_dmx:
       - dmx_id: dmx_bus_a
         universe: 0
 
-sensor:
-  - platform: dmx
-    dmx_bus_id: dmx_bus_a
-    channel: 1
-    id: dmx_sensor_1
-    name: "DMX Channel 1 Value"
+# output:
+#   - platform: dmx
+#     id: dmx_output_1
+#     dmx_bus_id: dmx_bus_b
+#     channel: 1
 
-  - platform: dmx
-    dmx_bus_id: dmx_bus_a
-    channel: 2
-    id: dmx_sensor_2
-    name: "DMX Channel 2 Value"
+#   - platform: dmx
+#     id: dmx_output_2
+#     dmx_bus_id: dmx_bus_b
+#     channel: 2
 
-  - platform: dmx
-    dmx_bus_id: dmx_bus_a
-    channel: 3
-    id: dmx_sensor_3
-    name: "DMX Channel 3 Value"
+#   - platform: dmx
+#     id: dmx_output_3
+#     dmx_bus_id: dmx_bus_b
+#     channel: 3
 
-  # ArtNet sensor on universe 1, channel 1
-  - platform: artnet
-    id: artnet_input_1
-    name: "ArtNet Universe 1 Channel 1"
-    universe: 1
-    channel: 1
+# light:
+#   - platform: rgb
+#     name: "Artnet input controlled RGB Light"
+#     # Map Art-Net channels to RGB components
+#     red: dmx_output_1
+#     green: dmx_output_2
+#     blue: dmx_output_3
 
-  # ArtNet sensor on universe 1, channel 2
-  - platform: artnet
-    id: artnet_input_2
-    name: "ArtNet Universe 1 Channel 2"
-    universe: 1
-    channel: 2
+# sensor:
+#   - platform: dmx
+#     dmx_bus_id: dmx_bus_a
+#     channel: 1
+#     id: dmx_sensor_1
+#     name: "DMX Channel 1 Value"
 
-  - platform: artnet
-    id: artnet_input_3
-    name: "ArtNet Universe 2 Channel 1"
-    universe: 2
-    channel: 1
+#   - platform: dmx
+#     dmx_bus_id: dmx_bus_a
+#     channel: 2
+#     id: dmx_sensor_2
+#     name: "DMX Channel 2 Value"
 
-output:
-  # Red channel of RGB light (universe 1, channel 1)
-  - platform: artnet
-    id: artnet_output_1
-    universe: 6
-    channel: 1
+#   - platform: dmx
+#     dmx_bus_id: dmx_bus_a
+#     channel: 3
+#     id: dmx_sensor_3
+#     name: "DMX Channel 3 Value"
 
-  # Green channel of RGB light (universe 1, channel 2)
-  - platform: artnet
-    id: artnet_output_2
-    universe: 6
-    channel: 2
+#   # ArtNet sensor on universe 1, channel 1
+#   - platform: artnet
+#     id: artnet_input_1
+#     name: "ArtNet Universe 1 Channel 1"
+#     universe: 1
+#     channel: 1
 
-  # Blue channel of RGB light (universe 1, channel 3)
-  - platform: artnet
-    id: artnet_output_3
-    universe: 6
-    channel: 3
+#   # ArtNet sensor on universe 1, channel 2
+#   - platform: artnet
+#     id: artnet_input_2
+#     name: "ArtNet Universe 1 Channel 2"
+#     universe: 1
+#     channel: 2
 
-light:
-  - platform: rgb
-    name: "Artnet input controlled RGB Light"
-    # Map Art-Net channels to RGB components
-    red: artnet_output_1
-    green: artnet_output_2
-    blue: artnet_output_3
+#   - platform: artnet
+#     id: artnet_input_3
+#     name: "ArtNet Universe 2 Channel 1"
+#     universe: 2
+#     channel: 1
 
-i2c:
-  sda: GPIO21
-  scl: GPIO22
-  frequency: 800kHz
+# output:
+#   # Red channel of RGB light (universe 1, channel 1)
+#   - platform: artnet
+#     id: artnet_output_1
+#     universe: 6
+#     channel: 1
 
-font:
-  - file: "gfonts://Open Sans"
-    id: main_font
-    size: 10 
+#   # Green channel of RGB light (universe 1, channel 2)
+#   - platform: artnet
+#     id: artnet_output_2
+#     universe: 6
+#     channel: 2
 
-text_sensor:
-  - platform: wifi_info
-    ip_address:
-      internal: true
-      id: wifi_ip
-    ssid:
-      id: wifi_ssid
+#   # Blue channel of RGB light (universe 1, channel 3)
+#   - platform: artnet
+#     id: artnet_output_3
+#     universe: 6
+#     channel: 3
 
-display:
-  - platform: ssd1306_i2c
-    model: "SSD1306 128x64"
-    address: 0x3C
-    update_interval: 100ms
-    lambda: |-
-      int y_cursor = 0;
-      const int padding = 0; // Extra vertical space between lines
+# light:
+#   - platform: rgb
+#     name: "Artnet input controlled RGB Light"
+#     # Map Art-Net channels to RGB components
+#     red: artnet_output_1
+#     green: artnet_output_2
+#     blue: artnet_output_3
 
-      it.printf(0, y_cursor, id(main_font),"SSID: %s",
-        id(wifi_ssid).state != "" ? id(wifi_ssid).state.c_str() : "Disconnected");
+# i2c:
+#   sda: GPIO21
+#   scl: GPIO22
+#   frequency: 800kHz
 
-      y_cursor += id(main_font).get_height() + padding;
+# font:
+#   - file: "gfonts://Open Sans"
+#     id: main_font
+#     size: 10
 
-      it.printf(0, y_cursor, id(main_font), "IP: %s",
-        id(wifi_ip).state != "" ? id(wifi_ip).state.c_str() : "Disconnected");
+# text_sensor:
+#   - platform: wifi_info
+#     ip_address:
+#       internal: true
+#       id: wifi_ip
+#     ssid:
+#       id: wifi_ssid
 
-      y_cursor += id(main_font).get_height() + padding;
+# display:
+#   - platform: ssd1306_i2c
+#     model: "SSD1306 128x64"
+#     address: 0x3C
+#     update_interval: 100ms
+#     lambda: |-
+#       int y_cursor = 0;
+#       const int padding = -1; // Extra vertical space between lines
 
-      it.printf(0, y_cursor, id(main_font), "ArtNet Net: 0 Sub: 0");
+#       it.printf(0, y_cursor, id(main_font),"SSID: %s",
+#         id(wifi_ssid).state != "" ? id(wifi_ssid).state.c_str() : "Disconnected");
 
-      y_cursor += id(main_font).get_height() + padding;
+#       y_cursor += id(main_font).get_height() + padding;
 
-      // Line 3: DMX port configuration
-      std::string dmx_a_mode = id(dmx_bus_a).get_mode() == dmx::DMXMode::DMX_MODE_SEND ? "Send" : "Receive";
-      std::string dmx_a_name = id(dmx_bus_a).get_name();
-      it.printf(0, y_cursor, id(main_font), "%s mode: %s", dmx_a_name.c_str(), dmx_a_mode.c_str());
+#       it.printf(0, y_cursor, id(main_font), "IP: %s",
+#         id(wifi_ip).state != "" ? id(wifi_ip).state.c_str() : "Disconnected");
+
+#       y_cursor += id(main_font).get_height() + padding;
+
+#       it.printf(0, y_cursor, id(main_font), "ArtNet Net: 0 Sub: 0");
+
+#       y_cursor += id(main_font).get_height() + padding;
+
+#       // Line 3: DMX port configuration
+#       std::string dmx_a_mode = id(dmx_bus_a).get_mode() == dmx::DMXMode::DMX_MODE_SEND ? "Send" : "Receive";
+#       std::string dmx_a_name = id(dmx_bus_a).get_name();
+#       it.printf(0, y_cursor, id(main_font), "%s mode: %s", dmx_a_name.c_str(), dmx_a_mode.c_str());
+
+#       y_cursor += id(main_font).get_height() + padding;
+
+#       std::string dmx_b_mode = id(dmx_bus_b).get_mode() == dmx::DMXMode::DMX_MODE_SEND ? "Send" : "Receive";
+#       std::string dmx_b_name = id(dmx_bus_b).get_name();
+#       it.printf(0, y_cursor, id(main_font), "%s mode: %s", dmx_b_name.c_str(), dmx_b_mode.c_str());
