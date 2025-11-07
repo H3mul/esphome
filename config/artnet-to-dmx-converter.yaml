@@ -31,9 +31,10 @@ web_server:
 
 external_components:
   # - source: github://H3mul/esphome-artnet
-  #   components: [ artnet_receiver ]
-  - source: ../../esphome-artnet/components
+  # - source: github://H3mul/esphome-dmx
+
   - source: ../../esphome-dmx/components
+  - source: ../../esphome-artnet/components
 
 # Configure DMX bus instances for bidirectional communication
 dmx:
@@ -49,7 +50,7 @@ dmx:
     dmx_port_id: 1
 
   - id: dmx_bus_b
-    mode: receive
+    mode: send
     name: "Port B"
     enable_pin:
       number: GPIO32
@@ -68,37 +69,33 @@ artnet:
     flush_period: 100ms
 
   route:
-    dmx_to_artnet:
-      - dmx_id: dmx_bus_b
-        universe: 1
+    - dmx_id: dmx_bus_a
+      universe: 0
+      direction: to_dmx
 
-    artnet_to_dmx:
-      - dmx_id: dmx_bus_a
-        universe: 0
+    - dmx_id: dmx_bus_b
+      universe: 1
+      direction: to_dmx
 
 # output:
 #   - platform: dmx
 #     id: dmx_output_1
-#     dmx_bus_id: dmx_bus_b
+#     dmx_bus_id: dmx_bus_a
 #     channel: 1
 
 #   - platform: dmx
 #     id: dmx_output_2
 #     dmx_bus_id: dmx_bus_b
-#     channel: 2
-
-#   - platform: dmx
-#     id: dmx_output_3
-#     dmx_bus_id: dmx_bus_b
-#     channel: 3
+#     channel: 1
 
 # light:
-#   - platform: rgb
-#     name: "Artnet input controlled RGB Light"
-#     # Map Art-Net channels to RGB components
-#     red: dmx_output_1
-#     green: dmx_output_2
-#     blue: dmx_output_3
+#   - platform: monochromatic
+#     name: "DMX Channel 1 Light"
+#     output: dmx_output_1
+
+#   - platform: monochromatic
+#     name: "DMX Channel 2 Light"
+#     output: dmx_output_2
 
 # sensor:
 #   - platform: dmx
@@ -118,20 +115,6 @@ artnet:
 #     channel: 3
 #     id: dmx_sensor_3
 #     name: "DMX Channel 3 Value"
-
-#   # ArtNet sensor on universe 1, channel 1
-#   - platform: artnet
-#     id: artnet_input_1
-#     name: "ArtNet Universe 1 Channel 1"
-#     universe: 1
-#     channel: 1
-
-#   # ArtNet sensor on universe 1, channel 2
-#   - platform: artnet
-#     id: artnet_input_2
-#     name: "ArtNet Universe 1 Channel 2"
-#     universe: 1
-#     channel: 2
 
 #   - platform: artnet
 #     id: artnet_input_3
