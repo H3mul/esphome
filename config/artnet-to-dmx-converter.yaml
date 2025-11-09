@@ -8,6 +8,25 @@ esphome:
   friendly_name: ArtNet to DMX Converter
   # platformio_options:
   #   board_build.flash_mode: dio
+  on_boot:
+    # Use a high priority like 600 to ensure most components are initialized.
+    # The default is 0.
+    priority: 1000 
+    then:
+      # Apply DMX Port A settings
+      - lambda: |-
+          id(dmx_bus_a).set_send_timeout_ticks((int)id(dmx_a_send_timeout).state);
+          id(dmx_bus_a).set_receive_timeout_ticks((int)id(dmx_a_receive_timeout).state);
+          id(dmx_bus_a).set_enabled(id(dmx_a_enabled).state);
+          id(dmx_bus_a).set_wait_for_send(id(dmx_a_wait_for_send).state);
+          id(dmx_bus_a).dump_config();
+      # Apply DMX Port B settings
+      - lambda: |-
+          id(dmx_bus_b).set_send_timeout_ticks((int)id(dmx_b_send_timeout).state);
+          id(dmx_bus_b).set_receive_timeout_ticks((int)id(dmx_b_receive_timeout).state);
+          id(dmx_bus_b).set_enabled(id(dmx_b_enabled).state);
+          id(dmx_bus_b).set_wait_for_send(id(dmx_b_wait_for_send).state);
+          id(dmx_bus_b).dump_config();
 
 wifi:
   networks:
@@ -20,14 +39,23 @@ wifi:
 
 logger:
   baud_rate: 0
-  level: DEBUG
+  level: VERBOSE
+  initial_level: DEBUG
   logs:
     text_sensor: INFO
+    # dmx: VERBOSE
+    # artnet: VERBOSE
 
 web_server:
     port: 80
     local: true
     version: 3
+    sorting_groups:
+      - id: dmx_port_a
+        name: "DMX Port A Hardware Settings"
+
+      - id: dmx_port_b
+        name: "DMX Port A Hardware Settings"
 
 external_components:
   # - source: github://H3mul/esphome-artnet
@@ -42,7 +70,7 @@ dmx:
     mode: send
     name: "Port A"
     enable_pin:
-      number: GPIO4
+      number: GPIO33
     tx_pin:
       number: GPIO25
     rx_pin:
@@ -68,34 +96,204 @@ artnet:
     address: 10.1.1.198
     flush_period: 100ms
 
-  route:
-    - dmx_id: dmx_bus_a
-      universe: 0
-      direction: to_dmx
+  # route:
+  #   - dmx_id: dmx_bus_a
+  #     universe: 0
+  #     direction: to_dmx
 
-    - dmx_id: dmx_bus_b
-      universe: 1
-      direction: to_dmx
+  #   - dmx_id: dmx_bus_b
+  #     universe: 1
+  #     direction: to_dmx
 
-# output:
-#   - platform: dmx
-#     id: dmx_output_1
-#     dmx_bus_id: dmx_bus_a
-#     channel: 1
+number:
+  - platform: template
+    id: dmx_a_send_timeout
+    name: "DMX Port A Send Timeout Ticks"
+    min_value: 1
+    max_value: 1250
+    initial_value: 44
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: dmx_port_a
+    set_action:
+      lambda: |-
+        id(dmx_bus_a).set_send_timeout_ticks(x);
 
-#   - platform: dmx
-#     id: dmx_output_2
-#     dmx_bus_id: dmx_bus_b
-#     channel: 1
+  - platform: template
+    id: dmx_a_receive_timeout
+    name: "DMX Port A Receive Timeout Ticks"
+    min_value: 1
+    max_value: 1250
+    initial_value: 44
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: dmx_port_a
+    set_action:
+      lambda: |-
+        id(dmx_bus_a).set_receive_timeout_ticks(x);
 
-# light:
-#   - platform: monochromatic
-#     name: "DMX Channel 1 Light"
-#     output: dmx_output_1
+  - platform: template
+    id: dmx_b_send_timeout
+    name: "DMX Port B Send Timeout Ticks"
+    min_value: 1
+    max_value: 1250
+    initial_value: 44
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: dmx_port_b
+    set_action:
+      lambda: |-
+        id(dmx_bus_b).set_send_timeout_ticks(x);
 
-#   - platform: monochromatic
-#     name: "DMX Channel 2 Light"
-#     output: dmx_output_2
+  - platform: template
+    id: dmx_b_receive_timeout
+    name: "DMX Port B Receive Timeout Ticks"
+    min_value: 1
+    max_value: 1250
+    initial_value: 44
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: dmx_port_b
+    set_action:
+      lambda: |-
+        id(dmx_bus_b).set_receive_timeout_ticks(x);
+
+switch:
+  - platform: template
+    id: dmx_a_enabled
+    name: "DMX Port A Enabled"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    web_server:
+      sorting_group_id: dmx_port_a
+    turn_on_action:
+      lambda: |-
+        id(dmx_bus_a).set_enabled(true);
+    turn_off_action:
+      lambda: |-
+        id(dmx_bus_a).set_enabled(false);
+
+  - platform: template
+    id: dmx_a_wait_for_send
+    name: "DMX Port A Wait For Send"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    web_server:
+      sorting_group_id: dmx_port_a
+    turn_on_action:
+      lambda: |-
+        id(dmx_bus_a).set_wait_for_send(true);
+    turn_off_action:
+      lambda: |-
+        id(dmx_bus_a).set_wait_for_send(false);
+
+  - platform: template
+    id: dmx_b_enabled
+    name: "DMX Port B Enabled"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    web_server:
+      sorting_group_id: dmx_port_b
+    turn_on_action:
+      lambda: |-
+        id(dmx_bus_b).set_enabled(true);
+    turn_off_action:
+      lambda: |-
+        id(dmx_bus_b).set_enabled(false);
+
+  - platform: template
+    id: dmx_b_wait_for_send
+    name: "DMX Port B Wait For Send"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    web_server:
+      sorting_group_id: dmx_port_b
+    turn_on_action:
+      lambda: |-
+        id(dmx_bus_b).set_wait_for_send(true);
+    turn_off_action:
+      lambda: |-
+        id(dmx_bus_b).set_wait_for_send(false);
+
+output:
+  # Port A outputs
+  - platform: dmx
+    id: port_a_output_1
+    dmx_bus_id: dmx_bus_a
+    channel: 1
+
+  - platform: dmx
+    id: port_a_output_2
+    dmx_bus_id: dmx_bus_a
+    channel: 2
+
+  - platform: dmx
+    id: port_a_output_3
+    dmx_bus_id: dmx_bus_a
+    channel: 3
+
+  - platform: dmx
+    id: port_a_output_4
+    dmx_bus_id: dmx_bus_a
+    channel: 4
+
+  # Port B outputs
+  - platform: dmx
+    id: port_b_output_1
+    dmx_bus_id: dmx_bus_b
+    channel: 1
+
+  - platform: dmx
+    id: port_b_output_2
+    dmx_bus_id: dmx_bus_b
+    channel: 2
+
+  - platform: dmx
+    id: port_b_output_3
+    dmx_bus_id: dmx_bus_b
+    channel: 3
+
+  - platform: dmx
+    id: port_b_output_4
+    dmx_bus_id: dmx_bus_b
+    channel: 4
+
+light:
+  - platform: monochromatic
+    name: "Port A Intensity Light"
+    output: port_a_output_1
+    default_transition_length: 3s
+
+  - platform: monochromatic
+    name: "Port B Intensity Light"
+    output: port_b_output_1
+    default_transition_length: 3s
+
+  - platform: rgb
+    name: "Port A RGB Light"
+    red: port_a_output_2
+    green: port_a_output_3
+    blue: port_a_output_4
+    default_transition_length: 3s
+
+  - platform: rgb
+    name: "Port B RGB Light"
+    red: port_b_output_2
+    green: port_b_output_3
+    blue: port_b_output_4
+    default_transition_length: 3s
 
 # sensor:
 #   - platform: dmx
