@@ -11,22 +11,18 @@ esphome:
   on_boot:
     # Use a high priority like 600 to ensure most components are initialized.
     # The default is 0.
-    priority: 1000 
+    priority: 600 
     then:
       # Apply DMX Port A settings
       - lambda: |-
-          id(dmx_bus_a).set_send_timeout_ticks((int)id(dmx_a_send_timeout).state);
-          id(dmx_bus_a).set_receive_timeout_ticks((int)id(dmx_a_receive_timeout).state);
           id(dmx_bus_a).set_enabled(id(dmx_a_enabled).state);
-          id(dmx_bus_a).set_wait_for_send(id(dmx_a_wait_for_send).state);
-          id(dmx_bus_a).dump_config();
+          id(dmx_bus_a).set_write_frequency((float)id(dmx_a_write_frequency).state);
+          id(dmx_bus_a).set_read_frequency((float)id(dmx_a_read_frequency).state);
       # Apply DMX Port B settings
       - lambda: |-
-          id(dmx_bus_b).set_send_timeout_ticks((int)id(dmx_b_send_timeout).state);
-          id(dmx_bus_b).set_receive_timeout_ticks((int)id(dmx_b_receive_timeout).state);
           id(dmx_bus_b).set_enabled(id(dmx_b_enabled).state);
-          id(dmx_bus_b).set_wait_for_send(id(dmx_b_wait_for_send).state);
-          id(dmx_bus_b).dump_config();
+          id(dmx_bus_b).set_write_frequency((float)id(dmx_b_write_frequency).state);
+          id(dmx_bus_b).set_read_frequency((float)id(dmx_b_read_frequency).state);
 
 wifi:
   networks:
@@ -39,11 +35,11 @@ wifi:
 
 logger:
   baud_rate: 0
-  level: VERBOSE
+  level: VERY_VERBOSE
   initial_level: DEBUG
   logs:
     text_sensor: INFO
-    # dmx: VERBOSE
+    # dmx: VERY_VERBOSE
     # artnet: VERBOSE
 
 web_server:
@@ -51,15 +47,12 @@ web_server:
     local: true
     version: 3
     sorting_groups:
-      - id: dmx_port_a
-        name: "DMX Port A Hardware Settings"
-
-      - id: dmx_port_b
-        name: "DMX Port A Hardware Settings"
+      - id: dmx_port_hardware
+        name: "DMX Port Hardware Settings"
 
 external_components:
-  # - source: github://H3mul/esphome-artnet
   # - source: github://H3mul/esphome-dmx
+  # - source: github://H3mul/esphome-artnet
 
   - source: ../../esphome-dmx/components
   - source: ../../esphome-artnet/components
@@ -75,7 +68,7 @@ dmx:
       number: GPIO25
     rx_pin:
       number: GPIO26
-    dmx_port_id: 1
+    dmx_port_id: 2
 
   - id: dmx_bus_b
     mode: send
@@ -86,7 +79,7 @@ dmx:
       number: GPIO19
     rx_pin:
       number: GPIO18
-    dmx_port_id: 2
+    dmx_port_id: 1
 
 artnet:
   name_short: "esp-artnet-dmx"
@@ -96,79 +89,79 @@ artnet:
     address: 10.1.1.198
     flush_period: 100ms
 
-  # route:
-  #   - dmx_id: dmx_bus_a
-  #     universe: 0
-  #     direction: to_dmx
+  route:
+    - dmx_id: dmx_bus_a
+      universe: 0
+      direction: to_dmx
 
-  #   - dmx_id: dmx_bus_b
-  #     universe: 1
-  #     direction: to_dmx
+    - dmx_id: dmx_bus_b
+      universe: 1
+      direction: to_dmx
 
 number:
   - platform: template
-    id: dmx_a_send_timeout
-    name: "DMX Port A Send Timeout Ticks"
+    id: dmx_a_write_frequency
+    name: "DMX Port A Write Frequency"
     min_value: 1
-    max_value: 1250
-    initial_value: 44
+    max_value: 50
+    initial_value: 40.0
     step: 1
     mode: box
     optimistic: true
     restore_value: true
     web_server:
-      sorting_group_id: dmx_port_a
+      sorting_group_id: dmx_port_hardware
     set_action:
       lambda: |-
-        id(dmx_bus_a).set_send_timeout_ticks(x);
+        id(dmx_bus_a).set_write_frequency(x);
 
   - platform: template
-    id: dmx_a_receive_timeout
-    name: "DMX Port A Receive Timeout Ticks"
+    id: dmx_a_read_frequency
+    name: "DMX Port A Read Frequency"
     min_value: 1
-    max_value: 1250
-    initial_value: 44
+    max_value: 44.1
+    initial_value: 40.0
     step: 1
     mode: box
     optimistic: true
     restore_value: true
     web_server:
-      sorting_group_id: dmx_port_a
+      sorting_group_id: dmx_port_hardware
     set_action:
       lambda: |-
-        id(dmx_bus_a).set_receive_timeout_ticks(x);
+        id(dmx_bus_a).set_read_frequency(x);
 
   - platform: template
-    id: dmx_b_send_timeout
-    name: "DMX Port B Send Timeout Ticks"
+    id: dmx_b_write_frequency
+    name: "DMX Port B Write Frequency"
     min_value: 1
-    max_value: 1250
-    initial_value: 44
+    max_value: 44.1
+    initial_value: 40.0
     step: 1
     mode: box
     optimistic: true
     restore_value: true
     web_server:
-      sorting_group_id: dmx_port_b
+      sorting_group_id: dmx_port_hardware
     set_action:
       lambda: |-
-        id(dmx_bus_b).set_send_timeout_ticks(x);
+        id(dmx_bus_b).set_write_frequency(x);
 
   - platform: template
-    id: dmx_b_receive_timeout
-    name: "DMX Port B Receive Timeout Ticks"
+    id: dmx_b_read_frequency
+    name: "DMX Port B Read Frequency"
     min_value: 1
-    max_value: 1250
-    initial_value: 44
+    max_value: 44.1
+    initial_value: 40.0
     step: 1
     mode: box
     optimistic: true
     restore_value: true
     web_server:
-      sorting_group_id: dmx_port_b
+      sorting_group_id: dmx_port_hardware
     set_action:
       lambda: |-
-        id(dmx_bus_b).set_receive_timeout_ticks(x);
+        id(dmx_bus_b).set_read_frequency(x);
 
 switch:
   - platform: template
@@ -177,7 +170,7 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     web_server:
-      sorting_group_id: dmx_port_a
+      sorting_group_id: dmx_port_hardware
     turn_on_action:
       lambda: |-
         id(dmx_bus_a).set_enabled(true);
@@ -186,46 +179,18 @@ switch:
         id(dmx_bus_a).set_enabled(false);
 
   - platform: template
-    id: dmx_a_wait_for_send
-    name: "DMX Port A Wait For Send"
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
-    web_server:
-      sorting_group_id: dmx_port_a
-    turn_on_action:
-      lambda: |-
-        id(dmx_bus_a).set_wait_for_send(true);
-    turn_off_action:
-      lambda: |-
-        id(dmx_bus_a).set_wait_for_send(false);
-
-  - platform: template
     id: dmx_b_enabled
     name: "DMX Port B Enabled"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     web_server:
-      sorting_group_id: dmx_port_b
+      sorting_group_id: dmx_port_hardware
     turn_on_action:
       lambda: |-
         id(dmx_bus_b).set_enabled(true);
     turn_off_action:
       lambda: |-
         id(dmx_bus_b).set_enabled(false);
-
-  - platform: template
-    id: dmx_b_wait_for_send
-    name: "DMX Port B Wait For Send"
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
-    web_server:
-      sorting_group_id: dmx_port_b
-    turn_on_action:
-      lambda: |-
-        id(dmx_bus_b).set_wait_for_send(true);
-    turn_off_action:
-      lambda: |-
-        id(dmx_bus_b).set_wait_for_send(false);
 
 output:
   # Port A outputs
