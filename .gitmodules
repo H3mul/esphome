@@ -1,0 +1,3 @@
+[submodule "config/artnet-dmx-converter"]
+	path = config/artnet-dmx-converter
+	url = git@github.com:H3mul/esphome-artnet-to-dmx-node.git
