@@ -6,6 +6,7 @@ esp32:
 esphome:
   name: artnet-dmx-converter
   friendly_name: ArtNet to DMX Converter
+
   # platformio_options:
   #   board_build.flash_mode: dio
   on_boot:
@@ -23,6 +24,39 @@ esphome:
           id(dmx_bus_b).set_enabled(id(dmx_b_enabled).state);
           id(dmx_bus_b).set_write_frequency((float)id(dmx_b_write_frequency).state);
           id(dmx_bus_b).set_read_frequency((float)id(dmx_b_read_frequency).state);
+      # Apply ArtNet settings
+      - lambda: |-
+          id(artnet_node).set_net((uint8_t)id(artnet_net).state);
+          id(artnet_node).set_subnet((uint8_t)id(artnet_subnet).state);
+          id(artnet_node).set_output_net((uint8_t)id(artnet_dest_net).state);
+          id(artnet_node).set_output_subnet((uint8_t)id(artnet_dest_subnet).state);
+          id(artnet_node).set_output_address(id(artnet_dest_address).state);
+          id(artnet_node).set_route_universe_by_index(0, (uint8_t)id(artnet_dmx_a_universe).state);
+          id(artnet_node).set_route_universe_by_index(1, (uint8_t)id(artnet_dmx_b_universe).state);
+      # Apply DMX A routing
+      - lambda: |-
+          auto routing_a = id(dmx_a_routing).state;
+          if (routing_a == "Disconnected") {
+            id(artnet_node).set_route_enabled_by_index(0, false);
+          } else if (routing_a == "ArtNet to DMX") {
+            id(artnet_node).set_route_enabled_by_index(0, true);
+            id(artnet_node).set_route_direction_by_index(0, esphome::artnet::Direction::DIRECTION_TO_DMX);
+          } else if (routing_a == "DMX to ArtNet") {
+            id(artnet_node).set_route_enabled_by_index(0, true);
+            id(artnet_node).set_route_direction_by_index(0, esphome::artnet::Direction::DIRECTION_TO_ARTNET);
+          }
+      # Apply DMX B routing
+      - lambda: |-
+          auto routing_b = id(dmx_b_routing).state;
+          if (routing_b == "Disconnected") {
+            id(artnet_node).set_route_enabled_by_index(1, false);
+          } else if (routing_b == "ArtNet to DMX") {
+            id(artnet_node).set_route_enabled_by_index(1, true);
+            id(artnet_node).set_route_direction_by_index(1, esphome::artnet::Direction::DIRECTION_TO_DMX);
+          } else if (routing_b == "DMX to ArtNet") {
+            id(artnet_node).set_route_enabled_by_index(1, true);
+            id(artnet_node).set_route_direction_by_index(1, esphome::artnet::Direction::DIRECTION_TO_ARTNET);
+          }
 
 wifi:
   networks:
@@ -31,29 +65,45 @@ wifi:
   fast_connect: true
   use_address: !secret artnet_local_ip
 
-<<: !include base-esphome-configuration.yaml
-
 logger:
   baud_rate: 0
-  level: VERY_VERBOSE
-  initial_level: DEBUG
-  logs:
-    text_sensor: INFO
+  level: DEBUG
+  # initial_level: DEBUG
+  # logs:
     # dmx: VERY_VERBOSE
     # artnet: VERBOSE
 
+ota:
+  - platform: web_server
+  - platform: esphome
+    password: !secret ota_password
+
+<<: !include base-esphome-configuration.yaml
+
 web_server:
     port: 80
+    auth:
+      username: !secret web_server_username
+      password: !secret web_server_password
     local: true
     version: 3
     sorting_groups:
       - id: dmx_port_hardware
         name: "DMX Port Hardware Settings"
+        sorting_weight: 0        
+      - id: artnet_node_settings
+        name: "ArtNet Node Settings"
+        sorting_weight: 1        
+      - id: artnet_destination_settings
+        name: "ArtNet Destination Settings"
+        sorting_weight: 2
+      - id: artnet_routing_settings
+        name: "ArtNet Routing Settings"
+        sorting_weight: 3
 
 external_components:
   # - source: github://H3mul/esphome-dmx
   # - source: github://H3mul/esphome-artnet
-
   - source: ../../esphome-dmx/components
   - source: ../../esphome-artnet/components
 
@@ -62,32 +112,34 @@ dmx:
   - id: dmx_bus_a
     mode: send
     name: "Port A"
+    write_frequency: 40
     enable_pin:
       number: GPIO33
     tx_pin:
       number: GPIO25
     rx_pin:
       number: GPIO26
-    dmx_port_id: 2
+    dmx_port_id: 1
 
   - id: dmx_bus_b
     mode: send
     name: "Port B"
+    write_frequency: 40
     enable_pin:
       number: GPIO32
     tx_pin:
       number: GPIO19
     rx_pin:
       number: GPIO18
-    dmx_port_id: 1
+    dmx_port_id: 2
 
 artnet:
+  id: artnet_node
   name_short: "esp-artnet-dmx"
   name_long: "ESPHome ArtNet to DMX Node"
 
   output:
     address: 10.1.1.198
-    flush_period: 100ms
 
   route:
     - dmx_id: dmx_bus_a
@@ -95,15 +147,125 @@ artnet:
       direction: to_dmx
 
     - dmx_id: dmx_bus_b
-      universe: 1
+      universe: 0
       direction: to_dmx
 
+text:
+  - platform: template
+    id: artnet_dest_address
+    name: "ArtNet Destination Address"
+    mode: text
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: artnet_destination_settings
+    set_action:
+      lambda: |-
+        id(artnet_node).set_output_address(x);
+
+
 number:
+  - platform: template
+    id: artnet_dmx_a_universe
+    name: "ArtNet DMX A Universe"
+    min_value: 0
+    max_value: 15
+    initial_value: 0
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: artnet_routing_settings
+    set_action:
+      lambda: |-
+        id(artnet_node).set_route_universe_by_index(0, (uint8_t)x);
+
+  - platform: template
+    id: artnet_dmx_b_universe
+    name: "ArtNet DMX B Universe"
+    min_value: 0
+    max_value: 15
+    initial_value: 0
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: artnet_routing_settings
+    set_action:
+      lambda: |-
+        id(artnet_node).set_route_universe_by_index(1, (uint8_t)x);
+
+  - platform: template
+    id: artnet_net
+    name: "ArtNet Net"
+    min_value: 0
+    max_value: 127
+    initial_value: 0
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: artnet_node_settings
+    set_action:
+      lambda: |-
+        id(artnet_node).set_net((uint8_t)x);
+
+  - platform: template
+    id: artnet_subnet
+    name: "ArtNet Subnet"
+    min_value: 0
+    max_value: 15
+    initial_value: 0
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: artnet_node_settings
+    set_action:
+      lambda: |-
+        id(artnet_node).set_subnet((uint8_t)x);
+
+  - platform: template
+    id: artnet_dest_net
+    name: "ArtNet Destination Net"
+    min_value: 0
+    max_value: 127
+    initial_value: 0
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: artnet_destination_settings
+    set_action:
+      lambda: |-
+        id(artnet_node).set_output_net((uint8_t)x);
+
+  - platform: template
+    id: artnet_dest_subnet
+    name: "ArtNet Destination Subnet"
+    min_value: 0
+    max_value: 15
+    initial_value: 0
+    step: 1
+    mode: box
+    optimistic: true
+    restore_value: true
+    web_server:
+      sorting_group_id: artnet_destination_settings
+    set_action:
+      lambda: |-
+        id(artnet_node).set_output_subnet((uint8_t)x);
+
   - platform: template
     id: dmx_a_write_frequency
     name: "DMX Port A Write Frequency"
     min_value: 1
-    max_value: 50
+    max_value: 44
     initial_value: 40.0
     step: 1
     mode: box
@@ -163,6 +325,55 @@ number:
       lambda: |-
         id(dmx_bus_b).set_read_frequency(x);
 
+select:
+  - platform: template
+    id: dmx_a_routing
+    name: "DMX Port A Routing"
+    optimistic: true
+    restore_value: true
+    initial_option: "Disconnected"
+    options:
+      - "Disconnected"
+      - "ArtNet to DMX"
+      - "DMX to ArtNet"
+    web_server:
+      sorting_group_id: artnet_routing_settings
+    set_action:
+      lambda: |-
+        if (x == "Disconnected") {
+          id(artnet_node).set_route_enabled_by_index(0, false);
+        } else if (x == "ArtNet to DMX") {
+          id(artnet_node).set_route_enabled_by_index(0, true);
+          id(artnet_node).set_route_direction_by_index(0, esphome::artnet::Direction::DIRECTION_TO_DMX);
+        } else if (x == "DMX to ArtNet") {
+          id(artnet_node).set_route_enabled_by_index(0, true);
+          id(artnet_node).set_route_direction_by_index(0, esphome::artnet::Direction::DIRECTION_TO_ARTNET);
+        }
+
+  - platform: template
+    id: dmx_b_routing
+    name: "DMX Port B Routing"
+    optimistic: true
+    restore_value: true
+    initial_option: "Disconnected"
+    options:
+      - "Disconnected"
+      - "ArtNet to DMX"
+      - "DMX to ArtNet"
+    web_server:
+      sorting_group_id: artnet_routing_settings
+    set_action:
+      lambda: |-
+        if (x == "Disconnected") {
+          id(artnet_node).set_route_enabled_by_index(1, false);
+        } else if (x == "ArtNet to DMX") {
+          id(artnet_node).set_route_enabled_by_index(1, true);
+          id(artnet_node).set_route_direction_by_index(1, esphome::artnet::Direction::DIRECTION_TO_DMX);
+        } else if (x == "DMX to ArtNet") {
+          id(artnet_node).set_route_enabled_by_index(1, true);
+          id(artnet_node).set_route_direction_by_index(1, esphome::artnet::Direction::DIRECTION_TO_ARTNET);
+        }
+
 switch:
   - platform: template
     id: dmx_a_enabled
@@ -191,126 +402,6 @@ switch:
     turn_off_action:
       lambda: |-
         id(dmx_bus_b).set_enabled(false);
-
-output:
-  # Port A outputs
-  - platform: dmx
-    id: port_a_output_1
-    dmx_bus_id: dmx_bus_a
-    channel: 1
-
-  - platform: dmx
-    id: port_a_output_2
-    dmx_bus_id: dmx_bus_a
-    channel: 2
-
-  - platform: dmx
-    id: port_a_output_3
-    dmx_bus_id: dmx_bus_a
-    channel: 3
-
-  - platform: dmx
-    id: port_a_output_4
-    dmx_bus_id: dmx_bus_a
-    channel: 4
-
-  # Port B outputs
-  - platform: dmx
-    id: port_b_output_1
-    dmx_bus_id: dmx_bus_b
-    channel: 1
-
-  - platform: dmx
-    id: port_b_output_2
-    dmx_bus_id: dmx_bus_b
-    channel: 2
-
-  - platform: dmx
-    id: port_b_output_3
-    dmx_bus_id: dmx_bus_b
-    channel: 3
-
-  - platform: dmx
-    id: port_b_output_4
-    dmx_bus_id: dmx_bus_b
-    channel: 4
-
-light:
-  - platform: monochromatic
-    name: "Port A Intensity Light"
-    output: port_a_output_1
-    default_transition_length: 3s
-
-  - platform: monochromatic
-    name: "Port B Intensity Light"
-    output: port_b_output_1
-    default_transition_length: 3s
-
-  - platform: rgb
-    name: "Port A RGB Light"
-    red: port_a_output_2
-    green: port_a_output_3
-    blue: port_a_output_4
-    default_transition_length: 3s
-
-  - platform: rgb
-    name: "Port B RGB Light"
-    red: port_b_output_2
-    green: port_b_output_3
-    blue: port_b_output_4
-    default_transition_length: 3s
-
-# sensor:
-#   - platform: dmx
-#     dmx_bus_id: dmx_bus_a
-#     channel: 1
-#     id: dmx_sensor_1
-#     name: "DMX Channel 1 Value"
-
-#   - platform: dmx
-#     dmx_bus_id: dmx_bus_a
-#     channel: 2
-#     id: dmx_sensor_2
-#     name: "DMX Channel 2 Value"
-
-#   - platform: dmx
-#     dmx_bus_id: dmx_bus_a
-#     channel: 3
-#     id: dmx_sensor_3
-#     name: "DMX Channel 3 Value"
-
-#   - platform: artnet
-#     id: artnet_input_3
-#     name: "ArtNet Universe 2 Channel 1"
-#     universe: 2
-#     channel: 1
-
-# output:
-#   # Red channel of RGB light (universe 1, channel 1)
-#   - platform: artnet
-#     id: artnet_output_1
-#     universe: 6
-#     channel: 1
-
-#   # Green channel of RGB light (universe 1, channel 2)
-#   - platform: artnet
-#     id: artnet_output_2
-#     universe: 6
-#     channel: 2
-
-#   # Blue channel of RGB light (universe 1, channel 3)
-#   - platform: artnet
-#     id: artnet_output_3
-#     universe: 6
-#     channel: 3
-
-# light:
-#   - platform: rgb
-#     name: "Artnet input controlled RGB Light"
-#     # Map Art-Net channels to RGB components
-#     red: artnet_output_1
-#     green: artnet_output_2
-#     blue: artnet_output_3
 
 # i2c:
 #   sda: GPIO21
