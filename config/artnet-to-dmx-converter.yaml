@@ -69,7 +69,8 @@ logger:
   baud_rate: 0
   level: DEBUG
   # initial_level: DEBUG
-  # logs:
+  logs:
+    text_sensor: INFO
     # dmx: VERY_VERBOSE
     # artnet: VERBOSE
 
@@ -403,54 +404,86 @@ switch:
       lambda: |-
         id(dmx_bus_b).set_enabled(false);
 
-# i2c:
-#   sda: GPIO21
-#   scl: GPIO22
-#   frequency: 800kHz
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  frequency: 800kHz
 
-# font:
-#   - file: "gfonts://Open Sans"
-#     id: main_font
-#     size: 10
+font:
+  - file: "gfonts://Open Sans"
+    id: main_font
+    size: 10
 
-# text_sensor:
-#   - platform: wifi_info
-#     ip_address:
-#       internal: true
-#       id: wifi_ip
-#     ssid:
-#       id: wifi_ssid
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      internal: true
+      id: wifi_ip
+    ssid:
+      id: wifi_ssid
 
-# display:
-#   - platform: ssd1306_i2c
-#     model: "SSD1306 128x64"
-#     address: 0x3C
-#     update_interval: 100ms
-#     lambda: |-
-#       int y_cursor = 0;
-#       const int padding = -1; // Extra vertical space between lines
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    address: 0x3C
+    update_interval: 200ms
+    lambda: |-
+      int y_cursor = 0;
+      const int padding = -1; // Extra vertical space between lines
 
-#       it.printf(0, y_cursor, id(main_font),"SSID: %s",
-#         id(wifi_ssid).state != "" ? id(wifi_ssid).state.c_str() : "Disconnected");
+      it.printf(0, y_cursor, id(main_font), "IP: %s Net %d:%d",
+        id(wifi_ip).state != "" ? id(wifi_ip).state.c_str() : "Disconnected",
+        (int)id(artnet_net).state, (int)id(artnet_subnet).state);
 
-#       y_cursor += id(main_font).get_height() + padding;
+      y_cursor += id(main_font).get_height() + padding;
 
-#       it.printf(0, y_cursor, id(main_font), "IP: %s",
-#         id(wifi_ip).state != "" ? id(wifi_ip).state.c_str() : "Disconnected");
+      it.printf(0, y_cursor, id(main_font), "Dest: %s Net %d:%d ",
+        id(artnet_dest_address).state.c_str(),
+        (int)id(artnet_dest_net).state,
+        (int)id(artnet_dest_subnet).state);
 
-#       y_cursor += id(main_font).get_height() + padding;
+      y_cursor += id(main_font).get_height()/2 + padding;
 
-#       it.printf(0, y_cursor, id(main_font), "ArtNet Net: 0 Sub: 0");
+      if (id(dmx_a_enabled).state) {
+        y_cursor += id(main_font).get_height() + padding;
 
-#       y_cursor += id(main_font).get_height() + padding;
+        // New line for DMX A summary
+        auto routing_a = id(dmx_a_routing).state;
+        float freq_a = 0.0f;
+        if (routing_a == "ArtNet to DMX") {
+          freq_a = id(dmx_a_write_frequency).state;
+        } else if (routing_a == "DMX to ArtNet") {
+          freq_a = id(dmx_a_read_frequency).state;
+        }
+        std::string routing_a_short;
+        if (routing_a == "Disconnected") routing_a_short = "Off";
+        else if (routing_a == "ArtNet to DMX") routing_a_short = "DMX in";
+        else if (routing_a == "DMX to ArtNet") routing_a_short = "DMX out";
 
-#       // Line 3: DMX port configuration
-#       std::string dmx_a_mode = id(dmx_bus_a).get_mode() == dmx::DMXMode::DMX_MODE_SEND ? "Send" : "Receive";
-#       std::string dmx_a_name = id(dmx_bus_a).get_name();
-#       it.printf(0, y_cursor, id(main_font), "%s mode: %s", dmx_a_name.c_str(), dmx_a_mode.c_str());
+        it.printf(0, y_cursor, id(main_font), "port A: %s, U%d %.0fHz",
+          routing_a_short.c_str(),
+          (int)id(artnet_dmx_a_universe).state,
+          freq_a);
+      }
 
-#       y_cursor += id(main_font).get_height() + padding;
+      if (id(dmx_b_enabled).state) {
+        y_cursor += id(main_font).get_height() + padding;
 
-#       std::string dmx_b_mode = id(dmx_bus_b).get_mode() == dmx::DMXMode::DMX_MODE_SEND ? "Send" : "Receive";
-#       std::string dmx_b_name = id(dmx_bus_b).get_name();
-#       it.printf(0, y_cursor, id(main_font), "%s mode: %s", dmx_b_name.c_str(), dmx_b_mode.c_str());
+        // New line for DMX B summary
+        auto routing_b = id(dmx_b_routing).state;
+        float freq_b = 0.0f;
+        if (routing_b == "ArtNet to DMX") {
+          freq_b = id(dmx_b_write_frequency).state;
+        } else if (routing_b == "DMX to ArtNet") {
+          freq_b = id(dmx_b_read_frequency).state;
+        }
+        std::string routing_b_short;
+        if (routing_b == "Disconnected") routing_b_short = "Off";
+        else if (routing_b == "ArtNet to DMX") routing_b_short = "DMX in";
+        else if (routing_b == "DMX to ArtNet") routing_b_short = "DMX out";
+
+        it.printf(0, y_cursor, id(main_font), "port B: %s, U%d %.0fHz",
+          routing_b_short.c_str(),
+          (int)id(artnet_dmx_b_universe).state,
+          freq_b);
+      }
