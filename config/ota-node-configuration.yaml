@@ -1,6 +1,9 @@
 packages:
   base: !include base-esphome-configuration.yaml
 
+esphome:
+  name: ota-node
+
 esp32:
   board: esp32-c3-devkitm-1
   variant: esp32c3
