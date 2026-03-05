@@ -3,8 +3,7 @@ substitutions:
 
 esphome:
   name: led-dimmer-node-1
-  platform: ESP8266
-  board: d1_mini
+  friendly_name: "Kitcher Lights"
   on_boot:
     - priority: 600
       then:
@@ -12,13 +11,65 @@ esphome:
             id: kitchen_light
             brightness: 70%
 
-<<: !include base-esphome-configuration.yaml
+esp8266:
+  board: d1_mini
+
+<<: !include base-esphome-configuration.yaml  
+
+wifi:
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+  fast_connect: true
+  use_address: !secret led_dimmer_node_1
 
 output:
   - platform: esp8266_pwm
     pin: D8
     frequency: 5000 Hz
     id: pwm_output
+
+number:
+  - platform: template
+    name: "Settle Time On (ms)"
+    id: settle_time_on
+    min_value: 0
+    max_value: 10000
+    initial_value: 3000
+    step: 100
+    optimistic: true
+    unit_of_measurement: "ms"
+    mode: box
+  - platform: template
+    name: "Settle Time Off (ms)"
+    id: settle_time_off
+    min_value: 0
+    max_value: 10000
+    initial_value: 2000
+    step: 100
+    optimistic: true
+    unit_of_measurement: "ms"
+    mode: box
+  - platform: template
+    name: "Delayed On (ms)"
+    id: delayed_on_ms
+    min_value: 0
+    max_value: 10000
+    initial_value: 5000
+    step: 100
+    optimistic: true
+    unit_of_measurement: "ms"
+    mode: box
+  - platform: template
+    name: "Delayed Off (ms)"
+    id: delayed_off_ms
+    min_value: 0
+    max_value: 300000
+    initial_value: 60000
+    step: 1000
+    optimistic: true
+    unit_of_measurement: "ms"
+    mode: box
 
 # Example usage in a light
 light:
@@ -50,20 +101,20 @@ binary_sensor:
     filters:
       - settle: !lambda |-
             if (id(kitchen_light).current_values.is_on()) {
-              return 3000;
+              return id(settle_time_on).state;
             } else {
-              return 2000;
+              return id(settle_time_off).state;
             }
       - delayed_on_off:
           time_on: !lambda |-
             if (id(kitchen_light).current_values.is_on()) {
               return 0;
             } else {
-              return 5000;
+              return id(delayed_on_ms).state;
             }
           time_off: !lambda |-
             if (id(kitchen_light).current_values.is_on()) {
-              return 60000;
+              return id(delayed_off_ms).state;
             } else {
               return 0;
             }
