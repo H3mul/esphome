@@ -21,6 +21,30 @@ remote_receiver:
     number: GPIO14
     inverted: true
   dump: all
+  on_nec:
+    then:
+      - if:
+          condition:
+            switch.is_on: dump_receiver
+          then:
+            - text_sensor.template.publish:
+                id: latest_ir_code
+                state: !lambda |-
+                  char buffer[50];
+                  sprintf(buffer, "NEC: Address=0x%04X, Command=0x%04X", x.address, x.command);
+                  return (std::string)buffer;
+
+switch:
+  - platform: template
+    name: "Enable IR Dump"
+    id: dump_receiver
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
+text_sensor:
+  - platform: template
+    name: "Latest IR Code"
+    id: latest_ir_code
 
 remote_transmitter:
   pin:
