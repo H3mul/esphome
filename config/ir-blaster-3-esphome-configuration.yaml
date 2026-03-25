@@ -9,6 +9,10 @@ substitutions:
 
 <<: !include base-esphome-configuration.yaml
 
+time:
+  - platform: sntp
+    id: sntp_time
+
 wifi:
   networks:
   - ssid: !secret wifi_ssid
@@ -33,6 +37,10 @@ remote_receiver:
                   char buffer[50];
                   sprintf(buffer, "NEC: Address=0x%04X, Command=0x%04X", x.address, x.command);
                   return (std::string)buffer;
+            - text_sensor.template.publish:
+                id: latest_ir_code_timestamp
+                state: !lambda |-
+                  return id(sntp_time).now().strftime("%Y-%m-%d %H:%M:%S");
 
 switch:
   - platform: template
@@ -45,6 +53,10 @@ text_sensor:
   - platform: template
     name: "Latest IR Code"
     id: latest_ir_code
+
+  - platform: template
+    name: "Latest IR Code Received At"
+    id: latest_ir_code_timestamp
 
 remote_transmitter:
   pin:
@@ -109,7 +121,7 @@ button:
         command_repeats: $command_repeats
 
   - platform: template
-    name: "Brightness Up"
+    name: "Stars Brightness Up"
     on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
@@ -117,7 +129,7 @@ button:
         command_repeats: $command_repeats
         
   - platform: template
-    name: "Brightness Down"
+    name: "Stars Brightness Down"
     on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
