@@ -20,6 +20,37 @@ wifi:
   fast_connect: true
   use_address: !secret ir_blaster_3_ip
 
+script:
+  - id: correct_power_state
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(stars_device_power).state != id(light_detected).state;
+          then:
+            - button.press: stars_power_button
+            
+  - id: correct_power_state_on
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return !id(light_detected).state;
+          then:
+            - button.press: stars_power_button
+            
+  - id: correct_power_state_off
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(light_detected).state;
+          then:
+            - button.press: stars_power_button
+
 remote_receiver:
   pin:
     number: GPIO14
@@ -42,7 +73,51 @@ remote_receiver:
                 state: !lambda |-
                   return id(sntp_time).now().strftime("%Y-%m-%d %H:%M:%S");
 
+number:
+  - platform: template
+    name: "Light Sensor Sensitivity"
+    id: light_sensitivity
+    min_value: 0.0
+    max_value: 1.0
+    initial_value: 0.75
+    step: 0.01
+    optimistic: true
+    restore_value: true
+    mode: slider
+
+  - platform: template
+    name: "Feedback Correction Delay"
+    id: feedback_delay
+    min_value: 0
+    max_value: 10000
+    initial_value: 500 
+    step: 500
+    unit_of_measurement: "ms"
+    optimistic: true
+    restore_value: true
+    mode: box
+
 switch:
+  - platform: template
+    name: "Stars Power Feedback Loop"
+    id: feedback_loop_enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - script.execute: correct_power_state
+    turn_off_action:
+      - script.execute: correct_power_state
+
+  - platform: template
+    name: "Stars Power"
+    id: stars_device_power
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - script.execute: correct_power_state_on
+    turn_off_action:
+      - script.execute: correct_power_state_off
+
   - platform: template
     name: "Enable IR Dump"
     id: dump_receiver
@@ -58,6 +133,32 @@ text_sensor:
     name: "Latest IR Code Received At"
     id: latest_ir_code_timestamp
 
+binary_sensor:
+  - platform: template
+    name: "Light Detected"
+    id: light_detected
+    lambda: |-
+      if (id(light_sensor_raw).state < id(light_sensitivity).state) {
+        return true;
+      } else {
+        return false;
+      }
+    on_state:
+      - delay: !lambda "return id(feedback_delay).state;"
+      - if:
+          condition:
+            switch.is_on: feedback_loop_enabled
+          then:
+            - script.execute: correct_power_state
+
+sensor:
+  - platform: adc
+    pin: A0
+    internal: true
+    name: "Light Sensor Raw"
+    id: light_sensor_raw
+    update_interval: 100ms
+
 remote_transmitter:
   pin:
     number: GPIO4
@@ -65,7 +166,8 @@ remote_transmitter:
 
 button:
   - platform: template
-    name: "Stars Power"
+    name: "Stars Toggle Power"
+    id: stars_power_button
     on_press:
       remote_transmitter.transmit_nec:
         address: 0xFF00
