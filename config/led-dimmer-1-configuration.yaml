@@ -125,6 +125,15 @@ binary_sensor:
       inverted: true
     name: "Kitchen Light Manual Push Button"
     id: toggle_led
-    on_press:
-      then:
-        light.toggle: kitchen_light
+    on_multi_click:
+      - timing:
+          - ON for at most 0.5s
+          - OFF for at least 0.2s
+        then:
+          light.toggle: kitchen_light
+
+      - timing:
+          - ON for at least 1s
+        then:
+          - homeassistant.event:
+              event: esphome.kitchen_button_long_pressed
